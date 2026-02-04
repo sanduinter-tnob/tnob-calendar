@@ -1,0 +1,9 @@
+{
+  "name": "tnob-calendar",
+  "version": "1.0.0",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "jsdom": "^24.0.0",
+    "ical-generator": "^6.0.0"
+  }
+}
