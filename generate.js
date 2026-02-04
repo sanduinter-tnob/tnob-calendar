@@ -1,9 +1,10 @@
 const axios = require("axios");
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
-const ical = require("ical-generator");
+const ical = require('ical-generator').default;
 
-const cal = ical({ name: "TNOB Opera & Balet" });
+const cal = new ical({ name: 'TNOB Opera & Balet' });
+
 
 async function run() {
   const now = new Date();
