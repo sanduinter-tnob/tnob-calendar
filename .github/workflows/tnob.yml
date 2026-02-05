@@ -3,7 +3,7 @@ name: Build TNOB Calendar
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 2 1 * *"
+    - cron: "0 2 1 * *" # каждый 1-й день месяца в 02:00 UTC
 
 jobs:
   build:
@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Generate calendar
+      - name: Run generator
         run: node generate.js
 
       - name: Commit calendar
@@ -31,4 +31,4 @@ jobs:
           git pull
           git add calendar.ics
           git commit -m "update calendar" || echo "no changes"
-          git push
+          git push origin main
