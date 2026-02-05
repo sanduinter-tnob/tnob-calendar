@@ -1,10 +1,9 @@
 const axios = require("axios");
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
-const ical = require('ical-generator').default;
+const ical = require("ical-generator");
 
-const cal = new ical({ name: 'TNOB Opera & Balet' });
-
+const cal = ical({ name: "TNOB Opera & Balet" });
 
 async function run() {
   const now = new Date();
@@ -16,25 +15,27 @@ async function run() {
   const dom = new JSDOM(res.data);
   const doc = dom.window.document;
 
-  const rows = doc.querySelectorAll(".calendar-item");
+  const items = [...doc.querySelectorAll("a[href*='/spectacole/']")];
 
-  rows.forEach((r) => {
-    const date = r.querySelector(".date")?.textContent.trim();
-    const time = r.querySelector(".hour")?.textContent.trim();
-    const title = r.querySelector(".title")?.textContent.trim();
+  items.forEach((item) => {
+    const parent = item.closest("div");
+    const text = parent.textContent;
 
-    if (!date || !title) return;
+    const dateMatch = text.match(/(\d{2}\.\d{2}\.\d{4})/);
+    const timeMatch = text.match(/(\d{2}:\d{2})/);
 
-    const [day, mon] = date.split(".").map((x) => parseInt(x));
-    const [h, m] = time?.split(":").map((x) => parseInt(x)) ?? [19, 0];
+    if (!dateMatch) return;
 
-    const start = new Date(year, mon - 1, day, h, m);
+    const [day, mon, yr] = dateMatch[1].split(".").map(Number);
+    const [h, m] = timeMatch ? timeMatch[1].split(":").map(Number) : [19, 0];
+
+    const start = new Date(yr, mon - 1, day, h, m);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
 
     cal.createEvent({
       start,
       end,
-      summary: title,
+      summary: item.textContent.trim(),
     });
   });
 
