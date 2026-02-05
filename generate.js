@@ -1,9 +1,11 @@
 const axios = require("axios");
 const { JSDOM } = require("jsdom");
 const fs = require("fs");
-const ical = require("ical-generator");
+const ical = require("ical-generator").default;
 
-const cal = ical({ name: "TNOB Opera & Balet" });
+const cal = ical({
+  name: "TNOB Opera & Balet",
+});
 
 async function run() {
   const now = new Date();
@@ -18,8 +20,7 @@ async function run() {
   const items = [...doc.querySelectorAll("a[href*='/spectacole/']")];
 
   items.forEach((item) => {
-    const parent = item.closest("div");
-    const text = parent.textContent;
+    const text = item.parentElement.textContent;
 
     const dateMatch = text.match(/(\d{2}\.\d{2}\.\d{4})/);
     const timeMatch = text.match(/(\d{2}:\d{2})/);
