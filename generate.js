@@ -2,10 +2,10 @@ const puppeteer = require("puppeteer");
 const ical = require("ical-generator");
 const fs = require("fs");
 
-const cal = ical({ name: "TNOB Opera & Balet" });
-
 (async () => {
-  const browser = await puppeteer.launch({ args: ["--no-sandbox"] });
+  const cal = ical({ name: "TNOB Opera & Balet" });
+
+  const browser = await puppeteer.launch({ headless: true });
   const page = await browser.newPage();
 
   const now = new Date();
@@ -13,32 +13,25 @@ const cal = ical({ name: "TNOB Opera & Balet" });
   const year = now.getFullYear();
 
   const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
-  await page.goto(url, { waitUntil: "networkidle2" });
+  await page.goto(url, { waitUntil: "networkidle0" });
 
-  const events = await page.evaluate(() => {
-    const list = [];
-    const anchors = document.querySelectorAll("a[href*='/spectacole/']");
-    anchors.forEach((a) => {
-      const parent = a.closest("div");
-      const text = parent.innerText;
+  // Ищем все спектакли
+  const events = await page.$$eval("a[href*='/spectacole/']", nodes =>
+    nodes.map(n => {
+      const parent = n.closest("div");
+      const text = parent ? parent.textContent : "";
+      return { title: n.textContent.trim(), text };
+    })
+  );
 
-      const dateMatch = text.match(/(\d{2}\.\d{2}\.\d{4})/);
-      const timeMatch = text.match(/(\d{2}:\d{2})/);
+  events.forEach(e => {
+    const dateMatch = e.text.match(/(\d{2}\.\d{2}\.\d{4})/);
+    const timeMatch = e.text.match(/(\d{2}:\d{2})/);
 
-      if (!dateMatch) return;
+    if (!dateMatch) return;
 
-      list.push({
-        title: a.innerText.trim(),
-        date: dateMatch[1],
-        time: timeMatch ? timeMatch[1] : "19:00",
-      });
-    });
-    return list;
-  });
-
-  events.forEach((e) => {
-    const [day, mon, yr] = e.date.split(".").map(Number);
-    const [h, m] = e.time.split(":").map(Number);
+    const [day, mon, yr] = dateMatch[1].split(".").map(Number);
+    const [h, m] = timeMatch ? timeMatch[1].split(":").map(Number) : [19, 0];
 
     const start = new Date(yr, mon - 1, day, h, m);
     const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
@@ -51,6 +44,6 @@ const cal = ical({ name: "TNOB Opera & Balet" });
   });
 
   fs.writeFileSync("calendar.ics", cal.toString());
-
   await browser.close();
+  console.log("calendar.ics generated ✅");
 })();
