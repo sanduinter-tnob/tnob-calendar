@@ -2,32 +2,32 @@ const puppeteer = require("puppeteer");
 const ical = require("ical-generator");
 const fs = require("fs");
 
-(async () => {
-  const cal = ical({ name: "TNOB Opera & Balet" });
+const cal = ical({ name: "TNOB Opera & Balet" });
 
-  const browser = await puppeteer.launch({ headless: true });
-  const page = await browser.newPage();
-
+async function run() {
   const now = new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
-
   const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
-  await page.goto(url, { waitUntil: "networkidle0" });
 
-  // Ищем все спектакли
-  const events = await page.$$eval("a[href*='/spectacole/']", nodes =>
-    nodes.map(n => {
-      const parent = n.closest("div");
+  const browser = await puppeteer.launch({ args: ['--no-sandbox'], headless: true });
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: "networkidle2" });
+
+  // Сбор всех спектаклей
+  const events = await page.evaluate(() => {
+    const list = [];
+    document.querySelectorAll("a[href*='/spectacole/']").forEach((el) => {
+      const parent = el.closest("div");
       const text = parent ? parent.textContent : "";
-      return { title: n.textContent.trim(), text };
-    })
-  );
+      list.push({ title: el.textContent.trim(), text });
+    });
+    return list;
+  });
 
-  events.forEach(e => {
-    const dateMatch = e.text.match(/(\d{2}\.\d{2}\.\d{4})/);
-    const timeMatch = e.text.match(/(\d{2}:\d{2})/);
-
+  events.forEach(ev => {
+    const dateMatch = ev.text.match(/(\d{2}\.\d{2}\.\d{4})/);
+    const timeMatch = ev.text.match(/(\d{2}:\d{2})/);
     if (!dateMatch) return;
 
     const [day, mon, yr] = dateMatch[1].split(".").map(Number);
@@ -39,11 +39,12 @@ const fs = require("fs");
     cal.createEvent({
       start,
       end,
-      summary: e.title,
+      summary: ev.title
     });
   });
 
   fs.writeFileSync("calendar.ics", cal.toString());
   await browser.close();
-  console.log("calendar.ics generated ✅");
-})();
+}
+
+run();
