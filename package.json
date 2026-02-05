@@ -1,6 +1,7 @@
 {
   "name": "tnob-calendar",
   "version": "1.0.0",
+  "type": "module",
   "dependencies": {
     "ical-generator": "^6.0.0",
     "puppeteer": "^21.0.0"
