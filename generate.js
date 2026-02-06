@@ -33,6 +33,7 @@ const events = await page.evaluate(() => {
 
   return data;
 });
+console.log("FOUND EVENTS:", events.length);
 
 console.log(events);
 
