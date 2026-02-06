@@ -36,6 +36,8 @@ const events = await page.evaluate(() => {
 console.log("FOUND EVENTS:", events.length);
 
 console.log(events);
+events.forEach(ev => console.log("RAW EVENT:", ev));
+
 
 const cal = ical({ name: "TNOB Opera & Balet" });
 
