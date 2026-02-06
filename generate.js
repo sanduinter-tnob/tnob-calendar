@@ -1,56 +1,55 @@
-const fs = require("fs");
-const ical = require("ical-generator").default;
-const puppeteer = require("puppeteer");
+import fs from "fs";
+import ical from "ical-generator";
+import puppeteer from "puppeteer";
 
-(async () => {
-  const browser = await puppeteer.launch({ headless: "new" });
-  const page = await browser.newPage();
+const browser = await puppeteer.launch({ headless: "new" });
+const page = await browser.newPage();
 
-  const now = new Date();
-  const month = now.getMonth() + 1;
-  const year = now.getFullYear();
+const now = new Date();
+const month = now.getMonth() + 1;
+const year = now.getFullYear();
 
-  const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
-  console.log("Open:", url);
+const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
+console.log("Open:", url);
 
-  await page.goto(url, { waitUntil: "networkidle2" });
+await page.goto(url, { waitUntil: "networkidle2" });
 
-  const events = await page.evaluate(() => {
-    const days = document.querySelectorAll(".oneDay");
-    const data = [];
+const events = await page.evaluate(() => {
+  const days = document.querySelectorAll(".oneDay");
+  const data = [];
 
-    days.forEach(day => {
-      const dateText = day.querySelector(".date")?.innerText.trim();
-      const title = day.querySelector(".about .big")?.innerText.trim();
+  days.forEach(day => {
+    const dateText = day.querySelector(".date")?.innerText.trim();
+    const title = day.querySelector(".about .big")?.innerText.trim();
 
-      if (dateText && title) {
-        data.push({ dateText, title });
-      }
-    });
-
-    return data;
+    if (dateText && title) {
+      data.push({ dateText, title });
+    }
   });
 
-  console.log(events);
+  return data;
+});
 
-  const cal = ical({ name: "TNOB Opera & Balet" });
+console.log(events);
 
-  events.forEach(ev => {
-    // пример dateText: 14.02.2026 18:00
-    const match = ev.dateText.match(/(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)/);
-    if (!match) return;
+const cal = ical({ name: "TNOB Opera & Balet" });
 
-    const [_, day, month, year, hour, minute] = match;
-    const date = new Date(year, month - 1, day, hour, minute);
+events.forEach(ev => {
+  // формат: 14.02.2026 18:00
+  const match = ev.dateText.match(/(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)/);
+  if (!match) return;
 
-    cal.createEvent({
-      start: date,
-      summary: ev.title,
-      location: "Teatrul Național de Operă și Balet, Chișinău",
-      description: "https://www.tnob.md"
-    });
+  const [_, day, month, year, hour, minute] = match;
+  const date = new Date(year, month - 1, day, hour, minute);
+
+  cal.createEvent({
+    start: date,
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
   });
+});
 
-  fs.writeFileSync("calendar.ics", cal.toString());
-  await browser.close();
-})();
+fs.writeFileSync("calendar.ics", cal.toString());
+
+await browser.close();
