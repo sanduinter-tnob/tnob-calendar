@@ -16,6 +16,7 @@ const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
 console.log("Open:", url);
 
 await page.goto(url, { waitUntil: "networkidle2" });
+await page.waitForSelector(".oneDay", { timeout: 10000 });
 
 const events = await page.evaluate(() => {
   const days = document.querySelectorAll(".oneDay");
