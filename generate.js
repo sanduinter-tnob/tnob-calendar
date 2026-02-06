@@ -41,11 +41,31 @@ const cal = ical({ name: "TNOB Opera & Balet" });
 
 events.forEach(ev => {
   // формат: 14.02.2026 18:00
-  const match = ev.dateText.match(/(\d+)\.(\d+)\.(\d+)\s+(\d+):(\d+)/);
-  if (!match) return;
+  const parts = ev.dateText.replace(/\n/g, " ").split(" ");
 
-  const [_, day, month, year, hour, minute] = match;
-  const date = new Date(year, month - 1, day, hour, minute);
+const day = parseInt(parts[0]);
+const monthName = parts[1].toLowerCase();
+const time = parts[3].replace("ora", "").trim();
+
+const [hour, minute] = time.split(":").map(Number);
+
+const months = {
+  ianuarie: 0,
+  februarie: 1,
+  martie: 2,
+  aprilie: 3,
+  mai: 4,
+  iunie: 5,
+  iulie: 6,
+  august: 7,
+  septembrie: 8,
+  octombrie: 9,
+  noiembrie: 10,
+  decembrie: 11,
+};
+
+const date = new Date(year, months[monthName], day, hour, minute);
+
 
   cal.createEvent({
     start: date,
