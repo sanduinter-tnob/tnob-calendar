@@ -2,7 +2,10 @@ import fs from "fs";
 import ical from "ical-generator";
 import puppeteer from "puppeteer";
 
-const browser = await puppeteer.launch({ headless: "new" });
+const browser = await puppeteer.launch({
+  headless: "new",
+  args: ["--no-sandbox", "--disable-setuid-sandbox"]
+});
 const page = await browser.newPage();
 
 const now = new Date();
