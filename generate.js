@@ -2,7 +2,6 @@ import fs from "fs";
 import ical from "ical-generator";
 import puppeteer from "puppeteer";
 
-// Запускаем браузер без sandbox для GitHub Actions
 const browser = await puppeteer.launch({
   headless: "new",
   args: ["--no-sandbox", "--disable-setuid-sandbox"]
@@ -10,21 +9,16 @@ const browser = await puppeteer.launch({
 
 const page = await browser.newPage();
 
-// Получаем текущий месяц и год
 const now = new Date();
 const month = now.getMonth() + 1;
 const year = now.getFullYear();
 
-// URL календаря TNOB
 const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
 console.log("Open:", url);
 
 await page.goto(url, { waitUntil: "networkidle2" });
-
-// Ждём, пока календарь дорисуется
 await page.waitForSelector(".oneDay", { timeout: 15000 });
 
-// Парсим события
 const events = await page.evaluate(() => {
   const days = document.querySelectorAll(".oneDay");
   const data = [];
@@ -47,10 +41,8 @@ const events = await page.evaluate(() => {
 console.log("FOUND EVENTS:", events.length);
 console.log(events);
 
-// Создаём календарь с указанием часового пояса (Europe/Chisinau)
-const cal = ical({ name: "TNOB Opera & Balet", timezone: "Europe/Chisinau" });
+const cal = ical({ name: "TNOB Opera & Balet" });
 
-// Словарь для месяцев на румынском
 const months = {
   ianuarie: 0,
   februarie: 1,
@@ -66,11 +58,10 @@ const months = {
   decembrie: 11
 };
 
-// Преобразуем дату из текста в объект Date
 events.forEach(ev => {
   const text = ev.dateText.replace(/\n/g, " ").toLowerCase();
 
-  // Пример: "14 februarie ora 18:00"
+  // пример текста: "1 februarie ora 17:00"
   const match = text.match(/(\d+)\s+([a-zăâîșț]+).*?(\d+):(\d+)/);
   if (!match) {
     console.log("DATE PARSE FAIL:", text);
@@ -79,15 +70,24 @@ events.forEach(ev => {
 
   const [_, day, monthName, hour, minute] = match;
   const monthIndex = months[monthName];
+
   if (monthIndex === undefined) {
     console.log("UNKNOWN MONTH:", monthName);
     return;
   }
 
-  // Создаём объект Date с часовым поясом локальной Молдовы
-  const date = new Date(Date.UTC(year, monthIndex, Number(day), Number(hour) - 2, Number(minute))); 
-  // -2 корректирует разницу UTC+2 для Молдовы зимой
+  const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
 
   cal.createEvent({
     start: date,
-    summary: ev.tit
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
+  });
+});
+
+// записываем календарь после всех событий
+fs.writeFileSync("calendar.ics", cal.toString());
+
+// закрываем браузер в конце файла
+await browser.close();
