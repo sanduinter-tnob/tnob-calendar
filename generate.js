@@ -30,6 +30,10 @@ const events = await page.evaluate(() => {
 
     shows.forEach(show => {
       const title = show.querySelector(".big")?.innerText.trim();
+      console.log("=== SHOW HTML START ===");
+console.log(show.innerHTML);
+console.log("=== SHOW HTML END ===");
+
       if (dateText && title) {
         data.push({ dateText, title });
       }
