@@ -43,10 +43,9 @@ const events = await page.evaluate(() => {
 console.log("FOUND EVENTS:", events.length);
 console.log(events);
 
-const cal = ical({ name: "TNOB Opera & Balet" });
+const cal = ical({ name: "TNOB Opera & Balet", timezone: "Europe/Chisinau" });
 
-// Румынские месяцы для парсинга
-const monthsMap = {
+const months = {
   ianuarie: 0,
   februarie: 1,
   martie: 2,
@@ -61,36 +60,4 @@ const monthsMap = {
   decembrie: 11
 };
 
-events.forEach(ev => {
-  const text = ev.dateText.replace(/\n/g, " ").toLowerCase();
-
-  // Пример: "14 februarie ora 18:00"
-  const match = text.match(/(\d+)\s+([a-zăâîșț]+).*?(\d+):(\d+)/);
-  if (!match) {
-    console.log("DATE PARSE FAIL:", text);
-    return;
-  }
-
-  const [_, day, monthName, hour, minute] = match;
-  const monthIndex = monthsMap[monthName];
-
-  if (monthIndex === undefined) {
-    console.log("UNKNOWN MONTH:", monthName);
-    return;
-  }
-
-  const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
-
-  cal.createEvent({
-    start: date,
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
-  });
-});
-
-// Сохраняем ICS
-fs.writeFileSync("calendar.ics", cal.toString());
-
-await browser.close();
-console.log("Calendar generated successfully!");
+events.for
