@@ -27,11 +27,15 @@ const events = await page.evaluate(() => {
 
   days.forEach(day => {
     const dateText = day.querySelector(".date")?.innerText.trim();
-    const title = day.querySelector(".about .big")?.innerText.trim();
+    const shows = day.querySelectorAll(".about");
 
-    if (dateText && title) {
-      data.push({ dateText, title });
-    }
+    shows.forEach(show => {
+      const title = show.querySelector(".big")?.innerText.trim();
+
+      if (dateText && title) {
+        data.push({ dateText, title });
+      }
+    });
   });
 
   return data;
