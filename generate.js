@@ -77,7 +77,8 @@ events.forEach(ev => {
   }
 
   const [_, day, monthName, hour, minute] = match;
-  const monthIndex = months[monthName];
+  const monthIndex = months[monthName.toLowerCase()];
+
 
   if (monthIndex === undefined) {
     console.log("UNKNOWN MONTH:", monthName);
