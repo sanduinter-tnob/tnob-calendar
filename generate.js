@@ -17,8 +17,6 @@ const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
 console.log("Open:", url);
 
 await page.goto(url, { waitUntil: "networkidle2" });
-
-// Ждём, пока TNOB дорисует календарь через JS
 await page.waitForSelector(".oneDay", { timeout: 15000 });
 
 const events = await page.evaluate(() => {
@@ -31,7 +29,6 @@ const events = await page.evaluate(() => {
 
     shows.forEach(show => {
       const title = show.querySelector(".big")?.innerText.trim();
-
       if (dateText && title) {
         data.push({ dateText, title });
       }
@@ -46,23 +43,40 @@ console.log(events);
 
 const cal = ical({ name: "TNOB Opera & Balet" });
 
-events.forEach(ev => {
-  // формат даты: 14.02.2026 18:00
-  const months = {
-  ianuarie: 0, februarie: 1, martie: 2, aprilie: 3,
-  mai: 4, iunie: 5, iulie: 6, august: 7,
-  septembrie: 8, octombrie: 9, noiembrie: 10, decembrie: 11
+const months = {
+  ianuarie: 0,
+  februarie: 1,
+  martie: 2,
+  aprilie: 3,
+  mai: 4,
+  iunie: 5,
+  iulie: 6,
+  august: 7,
+  septembrie: 8,
+  octombrie: 9,
+  noiembrie: 10,
+  decembrie: 11
 };
 
-// пример: "14 februarie 18:00"
-const match = ev.dateText.match(/(\d+)\s+([a-zA-Zăîâșț]+)\s+(\d+):(\d+)/);
+events.forEach(ev => {
+  const text = ev.dateText.replace(/\n/g, " ").toLowerCase();
 
-if (!match) return;
+  // пример текста: "1 februarie ora 17:00"
+  const match = text.match(/(\d+)\s+([a-zăâîșț]+).*?(\d+):(\d+)/);
+  if (!match) {
+    console.log("DATE PARSE FAIL:", text);
+    return;
+  }
 
-const [_, day, monthName, hour, minute] = match;
-const monthIndex = months[monthName.toLowerCase()];
+  const [_, day, monthName, hour, minute] = match;
+  const monthIndex = months[monthName];
 
-const date = new Date(year, monthIndex, day, hour, minute);
+  if (monthIndex === undefined) {
+    console.log("UNKNOWN MONTH:", monthName);
+    return;
+  }
+
+  const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
 
   cal.createEvent({
     start: date,
