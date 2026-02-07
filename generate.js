@@ -25,6 +25,7 @@ const events = await page.evaluate(() => {
   days.forEach(day => {
     const dateText = day.querySelector(".date")?.innerText.trim();
     const title = day.querySelector(".about .big")?.innerText.trim();
+    console.log("RAW DATE:", dateText);
 
     if (dateText && title) {
       data.push({ dateText, title });
