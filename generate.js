@@ -61,3 +61,14 @@ const months = {
 };
 
 events.for
+const cal = ical({ 
+  name: "TNOB Opera & Balet",
+  timezone: "Europe/Chisinau"
+});
+cal.createEvent({
+  start: date,
+  summary: ev.title,
+  location: "Teatrul Național de Operă și Balet, Chișinău",
+  description: "https://www.tnob.md",
+  timezone: "Europe/Chisinau"
+});
