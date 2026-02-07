@@ -77,11 +77,19 @@ events.forEach(ev => {
     return;
   }
 
-  const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
+  const date = DateTime.fromObject(
+  {
+    year: Number(year),
+    month: monthIndex + 1,
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute)
+  },
+  { zone: "Europe/Chisinau" }
+).toJSDate();
 
   cal.createEvent({
   start: date,
-  timezone: "Europe/Chisinau",
     summary: ev.title,
     location: "Teatrul Național de Operă și Balet, Chișinău",
     description: "https://www.tnob.md"
