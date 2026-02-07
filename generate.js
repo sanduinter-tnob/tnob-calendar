@@ -67,32 +67,40 @@ import puppeteer from "puppeteer";
 
   // Генерируем события
   events.forEach(ev => {
-    const text = ev.dateText.replace(/\n/g, " ").toLowerCase();
+  // убираем переносы строк и приводим к нижнему регистру
+  const text = ev.dateText.replace(/\n/g, " ").toLowerCase().trim();
 
-    // Пример текста TNOB: "1 februarie ora 17:00"
-    const match = text.match(/(\d+)\s+([a-zăâîșț]+).*?(\d+):(\d+)/);
-    if (!match) {
-      console.log("DATE PARSE FAIL:", text);
-      return;
-    }
+  // пример текста: "1 februarie ora 17:00"
+  const match = text.match(/(\d+)\s+([a-zăâîșț]+).*?(\d+):(\d+)/);
+  if (!match) {
+    console.log("DATE PARSE FAIL:", text);
+    return;
+  }
 
-    const [_, day, monthName, hour, minute] = match;
-    const monthIndex = months[monthName];
+  const [_, day, monthName, hour, minute] = match;
 
-    if (monthIndex === undefined) {
-      console.log("UNKNOWN MONTH:", monthName);
-      return;
-    }
+  const months = {
+    ianuarie: 0, februarie: 1, martie: 2, aprilie: 3,
+    mai: 4, iunie: 5, iulie: 6, august: 7,
+    septembrie: 8, octombrie: 9, noiembrie: 10, decembrie: 11
+  };
 
-    const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
+  const monthIndex = months[monthName];
+  if (monthIndex === undefined) {
+    console.log("UNKNOWN MONTH:", monthName);
+    return;
+  }
 
-    cal.createEvent({
-      start: date,
-      summary: ev.title,
-      location: "Teatrul Național de Operă și Balet, Chișinău",
-      description: "https://www.tnob.md"
-    });
+  const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
+
+  cal.createEvent({
+    start: date,
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
   });
+});
+
 
   // Сохраняем .ics
   fs.writeFileSync("calendar.ics", cal.toString());
