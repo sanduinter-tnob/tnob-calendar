@@ -43,6 +43,33 @@ events.forEach(ev => console.log("RAW EVENT:", ev));
 const cal = ical({ name: "TNOB Opera & Balet" });
 
 events.forEach(ev => {
+  const day = parseInt(ev.dateText.trim(), 10);
+
+  // время берём из названия, там есть "18:00"
+  const timeMatch = ev.title.match(/(\d{2}):(\d{2})/);
+
+  let hour = 18;
+  let minute = 0;
+
+  if (timeMatch) {
+    hour = parseInt(timeMatch[1], 10);
+    minute = parseInt(timeMatch[2], 10);
+  }
+
+  const date = new Date(year, month - 1, day, hour, minute);
+
+  if (isNaN(date)) {
+    console.log("BAD DATE:", ev);
+    return;
+  }
+
+  cal.createEvent({
+    start: date,
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
+  });
+});
   // формат: 14.02.2026 18:00
   const parts = ev.dateText.replace(/\n/g, " ").split(" ");
 
