@@ -4,7 +4,7 @@
   "type": "module",
   "dependencies": {
     "ical-generator": "^6.0.0",
-    "puppeteer": "^21.0.0"
+    "puppeteer": "^21.0.0",
     "luxon": "^3.4.4"
   }
 }
