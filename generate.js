@@ -27,31 +27,34 @@ const months = {
   await page.waitForSelector(".about", { timeout: 20000 });
 
   const events = await page.evaluate(() => {
-    const data = [];
+  const data = [];
 
-    document.querySelectorAll(".oneDay").forEach(day => {
-      const dateBlock = day.querySelector(".date");
-      const shows = day.querySelectorAll(".about");
+  document.querySelectorAll(".oneDay").forEach(day => {
+    const dateBlock = day.querySelector(".date");
+    const shows = day.querySelectorAll(".about");
 
-      if (!dateBlock) return;
+    if (!dateBlock) return;
 
-      const dateText = dateBlock.querySelector("p")?.innerText.trim();
-      const rawTime = dateBlock.querySelector("span")?.innerText.trim();
+    const dateP = dateBlock.querySelector("p");
+    const clockSpan = dateBlock.querySelector("span.clock");
 
-      // из "ora 18:30" делаем "18:30"
-      const timeMatch = rawTime.match(/(\d{1,2}:\d{2})/);
-      const timeText = timeMatch ? timeMatch[1] : null;
+    // дата
+    const dateText = dateP?.innerText.trim();
+    // время — текстовый узел после span.clock
+    const timeTextNode = clockSpan?.nextSibling;
+    const timeText = timeTextNode?.textContent?.trim();
 
-      shows.forEach(show => {
-        const title = show.querySelector(".big")?.innerText.trim();
-        if (title && dateText && timeText) {
-          data.push({ title, dateText, timeText });
-        }
-      });
+    shows.forEach(show => {
+      const title = show.querySelector(".big")?.innerText.trim();
+      if (title && dateText && timeText) {
+        data.push({ title, dateText, timeText });
+      }
     });
-
-    return data;
   });
+
+  return data;
+});
+
 
   console.log("FOUND EVENTS:", events.length);
   console.log(events);
