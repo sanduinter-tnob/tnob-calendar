@@ -1,41 +1,37 @@
 import fs from "fs";
 import ical from "ical-generator";
 
-const now = new Date();
-const month = now.getMonth() + 1;
-const year = now.getFullYear();
+const logFile = "error.log";
 
-const url = `https://www.tnob.md/ro/calendar/${month}-${year}?ajax=1`;
-console.log("Fetch URL:", url);
+function logError(msg) {
+    const time = new Date().toISOString();
+    fs.appendFileSync(logFile, `[${time}] ERROR: ${msg}\n`);
+}
 
-const months = {
-  ianuarie: 0,
-  februarie: 1,
-  martie: 2,
-  aprilie: 3,
-  mai: 4,
-  iunie: 5,
-  iulie: 6,
-  august: 7,
-  septembrie: 8,
-  octombrie: 9,
-  noiembrie: 10,
-  decembrie: 11
-};
+function logInfo(msg) {
+    const time = new Date().toISOString();
+    console.log(`[${time}] INFO: ${msg}`);
+}
 
-async function fetchCalendar(retries = 3) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      console.log(`Attempt ${attempt}...`);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-      const html = await res.text();
+try {
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
 
-      const events = [];
-      const dayRegex = /<div class="oneDay">([\s\S]*?)<\/div>\s*<\/div>/g;
-      let match;
+    const url = `https://www.tnob.md/ro/calendar/${month}-${year}?ajax=1`;
+    logInfo(`Fetching URL: ${url}`);
 
-      while ((match = dayRegex.exec(html)) !== null) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+
+    const html = await res.text();
+
+    const events = [];
+
+    const dayRegex = /<div class="oneDay">([\s\S]*?)<\/div>\s*<\/div>/g;
+    let match;
+
+    while ((match = dayRegex.exec(html)) !== null) {
         const block = match[1];
 
         const dateMatch = block.match(/<p>(\d+)\s+([A-Za-zăâîșț]+)<\/p>/i);
@@ -45,4 +41,46 @@ async function fetchCalendar(retries = 3) {
         if (!dateMatch || !timeMatch || !titleMatch) continue;
 
         const day = parseInt(dateMatch[1]);
-        const monthName
+        const monthName = dateMatch[2].toLowerCase();
+        const hour = parseInt(timeMatch[1]);
+        const minute = parseInt(timeMatch[2]);
+        const title = titleMatch[1].trim();
+
+        events.push({ day, monthName, hour, minute, title });
+    }
+
+    logInfo(`FOUND EVENTS: ${events.length}`);
+    if (events.length === 0) logError("No events found! Check page structure or selectors.");
+
+    const months = {
+        ianuarie: 0, februarie: 1, martie: 2, aprilie: 3,
+        mai: 4, iunie: 5, iulie: 6, august: 7,
+        septembrie: 8, octombrie: 9, noiembrie: 10, decembrie: 11
+    };
+
+    const cal = ical({ name: "TNOB Opera & Balet" });
+
+    events.forEach(ev => {
+        const monthIndex = months[ev.monthName];
+        if (monthIndex === undefined) {
+            logError(`Unknown month name: ${ev.monthName}`);
+            return;
+        }
+
+        const date = new Date(year, monthIndex, ev.day, ev.hour, ev.minute);
+
+        cal.createEvent({
+            start: date,
+            summary: ev.title,
+            location: "Teatrul Național de Operă și Balet, Chișinău",
+            description: "https://www.tnob.md"
+        });
+    });
+
+    fs.writeFileSync("calendar.ics", cal.toString());
+    logInfo("Calendar generated ✅");
+
+} catch (err) {
+    logError(err.message);
+    console.error(err);
+}
