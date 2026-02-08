@@ -1,74 +1,89 @@
-import fs from "fs";
-import ical from "ical-generator";
-import fetch from "node-fetch"; // если не используется Node 18+, иначе встроенный fetch
+import puppeteer from 'puppeteer';
+import ical from 'ical-generator';
+import fs from 'fs';
 
-const now = new Date();
-const month = now.getMonth() + 1;
-const year = now.getFullYear();
+const URL = 'https://www.tnob.md/ro/calendar/2-2026';
 
-const url = `https://www.tnob.md/ro/calendar/${month}-${year}?ajax=1`;
-console.log("Fetch:", url);
-
-const res = await fetch(url);
-const html = await res.text();
-
-const events = [];
-
-const dayRegex = /<div class="oneDay">([\s\S]*?)<\/div>\s*<\/div>/g;
-let match;
-
-while ((match = dayRegex.exec(html)) !== null) {
-  const block = match[1];
-
-  const dateMatch = block.match(/<p>(\d+)\s+([A-Za-zăâîșț]+)<\/p>/i);
-  const timeMatch = block.match(/ora\s*(\d{1,2}):(\d{2})/i);
-  const titleMatch = block.match(/class="big">([^<]+)</i);
-
-  if (!dateMatch || !timeMatch || !titleMatch) continue;
-
-  const day = parseInt(dateMatch[1]);
-  const monthName = dateMatch[2].toLowerCase();
-  const hour = parseInt(timeMatch[1]);
-  const minute = parseInt(timeMatch[2]);
-  const title = titleMatch[1].trim();
-
-  events.push({ day, monthName, hour, minute, title });
-}
-
-console.log("FOUND EVENTS:", events.length);
-console.log(events);
-
-const months = {
-  ianuarie: 0,
-  februarie: 1,
-  martie: 2,
-  aprilie: 3,
-  mai: 4,
-  iunie: 5,
-  iulie: 6,
-  august: 7,
-  septembrie: 8,
-  octombrie: 9,
-  noiembrie: 10,
-  decembrie: 11
+const MONTHS = {
+  Ianuarie: 0,
+  Februarie: 1,
+  Martie: 2,
+  Aprilie: 3,
+  Mai: 4,
+  Iunie: 5,
+  Iulie: 6,
+  August: 7,
+  Septembrie: 8,
+  Octombrie: 9,
+  Noiembrie: 10,
+  Decembrie: 11,
 };
 
-const cal = ical({ name: "TNOB Opera & Balet" });
+(async () => {
+  console.log('Open:', URL);
 
-events.forEach(ev => {
-  const monthIndex = months[ev.monthName];
-  if (monthIndex === undefined) return;
-
-  const date = new Date(year, monthIndex, ev.day, ev.hour, ev.minute);
-
-  cal.createEvent({
-    start: date,
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
+  const browser = await puppeteer.launch({
+    headless: 'new',
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
-});
 
-fs.writeFileSync("calendar.ics", cal.toString());
+  const page = await browser.newPage();
 
-console.log("Calendar generated ✅");
+  await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+  const events = await page.evaluate(() => {
+    const result = [];
+
+    const dateBlocks = document.querySelectorAll('.date');
+
+    dateBlocks.forEach(dateBlock => {
+      const aboutBlock = dateBlock.nextElementSibling;
+      if (!aboutBlock || !aboutBlock.classList.contains('about')) return;
+
+      const dateText = dateBlock.querySelector('p')?.textContent.trim(); // "13 Februarie"
+      const timeRaw = dateBlock.querySelector('span')?.textContent;     // "ora 18:30"
+      if (!dateText || !timeRaw) return;
+
+      const timeMatch = timeRaw.match(/\d{2}:\d{2}/);
+      if (!timeMatch) return;
+
+      const time = timeMatch[0];
+
+      const title = aboutBlock.querySelector('p.title')?.textContent.trim();
+      const link = aboutBlock.querySelector('a')?.href;
+
+      result.push({ dateText, time, title, link });
+    });
+
+    return result;
+  });
+
+  console.log('FOUND EVENTS:', events.length);
+  console.log(events);
+
+  const calendar = ical({ name: 'TNOB Opera & Ballet' });
+
+  events.forEach(ev => {
+    const [dayStr, monthName] = ev.dateText.split(' ');
+    const day = parseInt(dayStr, 10);
+    const month = MONTHS[monthName];
+
+    const [hour, minute] = ev.time.split(':').map(Number);
+
+    const start = new Date(2026, month, day, hour, minute);
+    const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+
+    calendar.createEvent({
+      start,
+      end,
+      summary: ev.title,
+      description: ev.link,
+      location: 'TNOB Chișinău',
+    });
+  });
+
+  fs.writeFileSync('tnob.ics', calendar.toString());
+  console.log('Calendar generated ✅');
+
+  await browser.close();
+})();
