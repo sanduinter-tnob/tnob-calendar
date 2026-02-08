@@ -28,15 +28,16 @@ const events = await page.evaluate(() => {
 
     if (!dateBlock) return;
 
-    const dateText = dateBlock.querySelector("p")?.innerText.trim(); // 13 Februarie
-    const timeText = dateBlock.querySelector("span")?.innerText.trim(); // ora 18:30
+    const dateText = dateBlock.querySelector("p")?.innerText.trim();
+    const timeText = dateBlock.querySelector("span")?.innerText.trim();
 
     if (!dateText || !timeText) return;
 
     const timeMatch = timeText.match(/(\d{1,2}):(\d{2})/);
     if (!timeMatch) return;
 
-    const [_, hour, minute] = timeMatch;
+    const hour = parseInt(timeMatch[1]);
+    const minute = parseInt(timeMatch[2]);
 
     aboutBlocks.forEach(about => {
       const title = about.querySelector(".big")?.innerText.trim();
@@ -82,8 +83,4 @@ events.forEach(ev => {
   const monthIndex = months[monthName];
   if (monthIndex === undefined) return;
 
-  const date = new Date(year, monthIndex, day, ev.hour, ev.minute);
-
-  cal.createEvent({
-    start: date,
-    summ
+  const
