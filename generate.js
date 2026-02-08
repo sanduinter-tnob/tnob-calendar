@@ -24,8 +24,6 @@ const months = {
   console.log("Open:", url);
 
   await page.goto(url, { waitUntil: "networkidle2", timeout: 0 });
-
-  // ждём дорисовку календаря
   await page.waitForSelector(".about", { timeout: 20000 });
 
   const events = await page.evaluate(() => {
@@ -38,7 +36,11 @@ const months = {
       if (!dateBlock) return;
 
       const dateText = dateBlock.querySelector("p")?.innerText.trim();
-      const timeText = dateBlock.querySelector("span:last-child")?.innerText.trim();
+      const rawTime = dateBlock.querySelector("span")?.innerText.trim();
+
+      // из "ora 18:30" делаем "18:30"
+      const timeMatch = rawTime.match(/(\d{1,2}:\d{2})/);
+      const timeText = timeMatch ? timeMatch[1] : null;
 
       shows.forEach(show => {
         const title = show.querySelector(".big")?.innerText.trim();
@@ -63,8 +65,8 @@ const months = {
     const monthIndex = months[monthName];
     if (monthIndex === undefined) return;
 
-    // корректировка UTC → Молдова
-    const date = new Date(Date.UTC(year, monthIndex, day, hour - 2, minute));
+    // создаём дату В ЛОКАЛЬНОМ ВРЕМЕНИ МОЛДОВЫ
+    const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
 
     cal.createEvent({
       start: date,
