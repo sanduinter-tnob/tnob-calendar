@@ -1,45 +1,12 @@
 import fs from "fs";
 import ical from "ical-generator";
-import fetch from "node-fetch"; // <-- обязательно через node-fetch
 
 const now = new Date();
 const month = now.getMonth() + 1;
 const year = now.getFullYear();
 
 const url = `https://www.tnob.md/ro/calendar/${month}-${year}?ajax=1`;
-console.log("Fetch:", url);
-
-const res = await fetch(url, { timeout: 15000 }); // 15 секунд timeout
-if (!res.ok) {
-  throw new Error(`HTTP error! status: ${res.status}`);
-}
-const html = await res.text();
-
-const events = [];
-
-const dayRegex = /<div class="oneDay">([\s\S]*?)<\/div>\s*<\/div>/g;
-let match;
-
-while ((match = dayRegex.exec(html)) !== null) {
-  const block = match[1];
-
-  const dateMatch = block.match(/<p>(\d+)\s+([A-Za-zăâîșț]+)<\/p>/i);
-  const timeMatch = block.match(/ora\s*(\d{1,2}):(\d{2})/i);
-  const titleMatch = block.match(/class="big">([^<]+)</i);
-
-  if (!dateMatch || !timeMatch || !titleMatch) continue;
-
-  const day = parseInt(dateMatch[1]);
-  const monthName = dateMatch[2].toLowerCase();
-  const hour = parseInt(timeMatch[1]);
-  const minute = parseInt(timeMatch[2]);
-  const title = titleMatch[1].trim();
-
-  events.push({ day, monthName, hour, minute, title });
-}
-
-console.log("FOUND EVENTS:", events.length);
-console.log(events);
+console.log("Fetch URL:", url);
 
 const months = {
   ianuarie: 0,
@@ -56,22 +23,26 @@ const months = {
   decembrie: 11
 };
 
-const cal = ical({ name: "TNOB Opera & Balet" });
+async function fetchCalendar(retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}...`);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const html = await res.text();
 
-events.forEach(ev => {
-  const monthIndex = months[ev.monthName];
-  if (monthIndex === undefined) return;
+      const events = [];
+      const dayRegex = /<div class="oneDay">([\s\S]*?)<\/div>\s*<\/div>/g;
+      let match;
 
-  const date = new Date(year, monthIndex, ev.day, ev.hour, ev.minute);
+      while ((match = dayRegex.exec(html)) !== null) {
+        const block = match[1];
 
-  cal.createEvent({
-    start: date,
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
-  });
-});
+        const dateMatch = block.match(/<p>(\d+)\s+([A-Za-zăâîșț]+)<\/p>/i);
+        const timeMatch = block.match(/ora\s*(\d{1,2}):(\d{2})/i);
+        const titleMatch = block.match(/class="big">([^<]+)</i);
 
-fs.writeFileSync("calendar.ics", cal.toString());
+        if (!dateMatch || !timeMatch || !titleMatch) continue;
 
-console.log("Calendar generated ✅");
+        const day = parseInt(dateMatch[1]);
+        const monthName
