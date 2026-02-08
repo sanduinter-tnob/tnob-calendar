@@ -59,22 +59,28 @@ const months = {
   const cal = ical({ name: "TNOB Opera & Balet" });
 
   events.forEach(ev => {
-    const [day, monthName] = ev.dateText.toLowerCase().split(" ");
-    const [hour, minute] = ev.timeText.split(":");
+  if (!ev.dateText || !ev.timeText) return; // <-- добавлено
 
-    const monthIndex = months[monthName];
-    if (monthIndex === undefined) return;
+  const [dayStr, monthName] = ev.dateText.toLowerCase().split(" ");
+  const [hourStr, minuteStr] = ev.timeText.replace(/[^\d:]/g,"").split(":");
 
-    // создаём дату В ЛОКАЛЬНОМ ВРЕМЕНИ МОЛДОВЫ
-    const date = new Date(year, monthIndex, Number(day), Number(hour), Number(minute));
+  const day = parseInt(dayStr, 10);
+  const hour = parseInt(hourStr, 10);
+  const minute = parseInt(minuteStr, 10);
 
-    cal.createEvent({
-      start: date,
-      summary: ev.title,
-      location: "Teatrul Național de Operă și Balet, Chișinău",
-      description: "https://www.tnob.md"
-    });
+  const monthIndex = months[monthName];
+  if (monthIndex === undefined) return;
+
+  const date = new Date(Date.UTC(year, monthIndex, day, hour - 2, minute));
+
+  cal.createEvent({
+    start: date,
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
   });
+});
+
 
   fs.writeFileSync("calendar.ics", cal.toString());
   console.log("Calendar generated ✅");
