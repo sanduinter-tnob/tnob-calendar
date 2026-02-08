@@ -3,6 +3,7 @@
   "type": "module",
   "dependencies": {
     "ical-generator": "^6.0.0",
+    "luxon": "^3.4.4",
     "puppeteer": "^24.15.0"
   }
 }
