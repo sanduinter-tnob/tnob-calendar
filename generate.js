@@ -24,69 +24,49 @@ const months = {
   console.log("Open:", url);
 
   await page.goto(url, { waitUntil: "networkidle2", timeout: 0 });
+
+  // ждём дорисовку календаря
   await page.waitForSelector(".about", { timeout: 20000 });
 
   const events = await page.evaluate(() => {
-  const data = [];
+    const data = [];
 
-  document.querySelectorAll(".oneDay").forEach(day => {
-    const dateBlock = day.querySelector(".date");
-    const shows = day.querySelectorAll(".about");
+    document.querySelectorAll(".oneDay").forEach(day => {
+      const dateBlock = day.querySelector(".date");
+      const shows = day.querySelectorAll(".about");
 
-    if (!dateBlock) return;
+      if (!dateBlock) return;
 
-    const dateP = dateBlock.querySelector("p");
-    const clockSpan = dateBlock.querySelector("span.clock");
+      const dateText = dateBlock.querySelector("p")?.innerText.trim();
+      const timeText = dateBlock.querySelector("span:last-child")?.innerText.trim();
 
-    // дата
-    const dateText = dateP?.innerText.trim();
-    // время — текстовый узел после span.clock
-    const timeTextNode = clockSpan?.nextSibling;
-    const timeText = timeTextNode?.textContent?.trim();
-
-    shows.forEach(show => {
-      const title = show.querySelector(".big")?.innerText.trim();
-      if (title && dateText && timeText) {
-        data.push({ title, dateText, timeText });
-      }
+      shows.forEach(show => {
+        const title = show.querySelector(".big")?.innerText.trim();
+        if (title && dateText && timeText) {
+          data.push({ title, dateText, timeText });
+        }
+      });
     });
+
+    return data;
   });
-
-  return data;
-});
-
 
   console.log("FOUND EVENTS:", events.length);
   console.log(events);
 
-  const cal = ical({ name: "TNOB Opera & Balet" });
+  const cal = ical({ name: "TNOB Opera & Balet", timezone: "Europe/Chisinau" });
 
   events.forEach(ev => {
-  if (!ev.dateText || !ev.timeText) return; // <-- добавлено
+    const [day, monthName] = ev.dateText.toLowerCase().split(" ");
+    const [hour, minute] = ev.timeText.split(":");
 
-  const [dayStr, monthName] = ev.dateText.toLowerCase().split(" ");
-  const [hourStr, minuteStr] = ev.timeText.replace(/[^\d:]/g,"").split(":");
+    const monthIndex = months[monthName.toLowerCase()];
+    if (monthIndex === undefined) return;
 
-  const day = parseInt(dayStr, 10);
-  const hour = parseInt(hourStr, 10);
-  const minute = parseInt(minuteStr, 10);
+    const date = new Date(year, monthIndex, parseInt(day), parseInt(hour), parseInt(minute));
 
-  const monthIndex = months[monthName];
-  if (monthIndex === undefined) return;
-
-  const date = new Date(Date.UTC(year, monthIndex, day, hour - 2, minute));
-
-  cal.createEvent({
-    start: date,
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
-  });
-});
-
-
-  fs.writeFileSync("calendar.ics", cal.toString());
-  console.log("Calendar generated ✅");
-
-  await browser.close();
-})();
+    cal.createEvent({
+      start: date,
+      summary: ev.title,
+      location: "Teatrul Național de Operă și Balet, Chișinău",
+      description: "https://www.tnob.md",
