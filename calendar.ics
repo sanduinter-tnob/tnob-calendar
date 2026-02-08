@@ -3,6 +3,4 @@ VERSION:2.0
 PRODID:-//sebbo.net//ical-generator//EN
 NAME:TNOB Opera & Balet
 X-WR-CALNAME:TNOB Opera & Balet
-TIMEZONE-ID:Europe/Chisinau
-X-WR-TIMEZONE:Europe/Chisinau
 END:VCALENDAR
