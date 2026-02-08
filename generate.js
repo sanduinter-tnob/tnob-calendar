@@ -1,5 +1,6 @@
 import fs from "fs";
 import ical from "ical-generator";
+import fetch from "node-fetch"; // <-- обязательно через node-fetch
 
 const now = new Date();
 const month = now.getMonth() + 1;
@@ -8,7 +9,10 @@ const year = now.getFullYear();
 const url = `https://www.tnob.md/ro/calendar/${month}-${year}?ajax=1`;
 console.log("Fetch:", url);
 
-const res = await fetch(url);
+const res = await fetch(url, { timeout: 15000 }); // 15 секунд timeout
+if (!res.ok) {
+  throw new Error(`HTTP error! status: ${res.status}`);
+}
 const html = await res.text();
 
 const events = [];
