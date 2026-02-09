@@ -57,15 +57,16 @@ const cal = ical({
 });
 
 events.forEach(ev => {
-  const date = new Date(year, month - 1, ev.day, ev.hour, ev.minute);
+  const date = new Date(
+    `${year}-${String(month).padStart(2,'0')}-${String(ev.day).padStart(2,'0')}T${String(ev.hour).padStart(2,'0')}:${String(ev.minute).padStart(2,'0')}:00+02:00`
+  );
 
   cal.createEvent({
     start: date,
     summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
   });
 });
+
 
 fs.writeFileSync("calendar.ics", cal.toString());
 
