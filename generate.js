@@ -57,9 +57,8 @@ const cal = ical({
 });
 
 events.forEach(ev => {
-  const date = new Date(
-    `${year}-${String(month).padStart(2,'0')}-${String(ev.day).padStart(2,'0')}T${String(ev.hour).padStart(2,'0')}:${String(ev.minute).padStart(2,'0')}:00+02:00`
-  );
+  const date = new Date(Date.UTC(year, month - 1, ev.day, ev.hour, ev.minute));
+
 
   cal.createEvent({
     start: date,
