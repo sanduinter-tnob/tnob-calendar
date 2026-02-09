@@ -1,7 +1,5 @@
 import fs from "fs";
 import ical from "ical-generator";
-import fetch from "node-fetch";
-
 const now = new Date();
 const month = now.getMonth() + 1;
 const year = now.getFullYear();
