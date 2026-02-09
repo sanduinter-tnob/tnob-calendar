@@ -10,35 +10,16 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 
 const now = new Date();
-const month = now.getMonth() + 1;
+const month = now.getMonth(); // 0-11
 const year = now.getFullYear();
 
-const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
+const url = `https://www.tnob.md/ro/calendar/${month + 1}-${year}`;
 console.log("Open:", url);
 
 await page.goto(url, { waitUntil: "networkidle2", timeout: 0 });
 await page.waitForSelector(".oneDay", { timeout: 20000 });
 
-// ✅ Берём месяц из заголовка страницы
-const headerText = await page.$eval("h1", el => el.innerText.toLowerCase());
-
-const monthMap = {
-  ianuarie: 0, februarie: 1, martie: 2, aprilie: 3,
-  mai: 4, iunie: 5, iulie: 6, august: 7,
-  septembrie: 8, octombrie: 9, noiembrie: 10, decembrie: 11
-};
-
-let monthIndex;
-for (const name in monthMap) {
-  if (headerText.includes(name)) {
-    monthIndex = monthMap[name];
-    break;
-  }
-}
-
-console.log("Detected month index:", monthIndex);
-
-const events = await page.evaluate((monthIndex) => {
+const events = await page.evaluate(() => {
   const result = [];
 
   document.querySelectorAll(".oneDay").forEach(day => {
@@ -66,7 +47,7 @@ const events = await page.evaluate((monthIndex) => {
   });
 
   return result;
-}, monthIndex);
+});
 
 console.log("FOUND EVENTS:", events);
 
@@ -76,7 +57,7 @@ const cal = ical({
 });
 
 events.forEach(ev => {
-  const date = new Date(year, monthIndex, ev.day, ev.hour, ev.minute);
+  const date = new Date(year, month, ev.day, ev.hour, ev.minute);
 
   console.log("Creating:", ev.title, date);
 
