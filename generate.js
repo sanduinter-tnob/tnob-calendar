@@ -1,5 +1,7 @@
 import fs from "fs";
 import ical from "ical-generator";
+import fetch from "node-fetch";
+
 const now = new Date();
 const month = now.getMonth() + 1;
 const year = now.getFullYear();
@@ -57,15 +59,15 @@ const cal = ical({
 });
 
 events.forEach(ev => {
-  const date = new Date(Date.UTC(year, month - 1, ev.day, ev.hour, ev.minute));
-
+  const date = new Date(year, month - 1, ev.day, ev.hour, ev.minute);
 
   cal.createEvent({
     start: date,
     summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
   });
 });
-
 
 fs.writeFileSync("calendar.ics", cal.toString());
 
