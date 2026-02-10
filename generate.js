@@ -2,104 +2,115 @@ import fs from "fs";
 import ical from "ical-generator";
 import puppeteer from "puppeteer";
 
-const browser = await puppeteer.launch({
-  headless: "new",
-  args: ["--no-sandbox", "--disable-setuid-sandbox"]
-});
+async function main() {
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  });
 
-const page = await browser.newPage();
+  const page = await browser.newPage();
 
-const now = new Date();
-const month = now.getMonth() + 1;
-const year = now.getFullYear();
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
 
-const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
-console.log("Open:", url);
+  const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
+  console.log("Open:", url);
 
-await page.goto(url, { waitUntil: "networkidle2" });
+  try {
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+  } catch (err) {
+    console.error("Navigation timeout:", err.message);
+    await browser.close();
+    return;
+  }
 
-// Ждём, пока календарь загрузится
-await page.waitForSelector(".oneDay", { timeout: 15000 });
+  // Ждём, пока календарь дорисуется
+  try {
+    await page.waitForSelector(".oneDay", { timeout: 15000 });
+  } catch (err) {
+    console.error("No calendar loaded:", err.message);
+    await browser.close();
+    return;
+  }
 
-const events = await page.evaluate(() => {
-  const days = document.querySelectorAll(".oneDay");
-  const data = [];
+  // Собираем события
+  const events = await page.evaluate(() => {
+    const months = {
+      ianuarie: 0, februarie: 1, martie: 2, aprilie: 3,
+      mai: 4, iunie: 5, iulie: 6, august: 7,
+      septembrie: 8, octombrie: 9, noiembrie: 10, decembrie: 11
+    };
 
-  days.forEach(day => {
-    const dateText = day.querySelector(".date p")?.innerText.trim();
-    const timeText = day.querySelector(".date .clock")?.nextSibling?.textContent.trim();
-    const shows = day.querySelectorAll(".about");
+    const days = Array.from(document.querySelectorAll(".oneDay"));
+    const data = [];
 
-    shows.forEach(show => {
-      const title = show.querySelector(".big")?.innerText.trim();
-      if (dateText && title) {
-        let [dayNum, monthName] = dateText.split(" ");
-        let hour = 18; // default
-        let minute = 0;
+    days.forEach(day => {
+      const dateEl = day.querySelector(".date p");
+      const clockEl = day.querySelector(".clock");
+      const timeText = clockEl ? clockEl.nextSibling.textContent.trim() : null;
 
-        if (timeText) {
-          const match = timeText.match(/(\d+):(\d+)/);
-          if (match) {
-            hour = parseInt(match[1], 10);
-            minute = parseInt(match[2], 10);
-          }
+      const showEl = day.querySelector(".big");
+      if (!dateEl || !showEl) return;
+
+      const title = showEl.innerText.trim();
+
+      // Дата
+      const dateText = dateEl.innerText.trim().toLowerCase(); // "13 februarie"
+      const dateMatch = dateText.match(/(\d+)\s+([a-zăâîșț]+)/);
+      if (!dateMatch) return;
+
+      const dayNum = parseInt(dateMatch[1]);
+      const monthName = dateMatch[2];
+      const monthNum = months[monthName];
+      if (monthNum === undefined) return;
+
+      // Время
+      let hour = 18, minute = 0; // дефолтное время, если нет
+      if (timeText) {
+        const timeMatch = timeText.match(/(\d{1,2}):(\d{2})/);
+        if (timeMatch) {
+          hour = parseInt(timeMatch[1]);
+          minute = parseInt(timeMatch[2]);
         }
-
-        data.push({
-          title,
-          day: parseInt(dayNum, 10),
-          monthName: monthName.toLowerCase(),
-          hour,
-          minute
-        });
       }
+
+      const dateObj = new Date();
+      dateObj.setFullYear(new Date().getFullYear());
+      dateObj.setMonth(monthNum);
+      dateObj.setDate(dayNum);
+      dateObj.setHours(hour);
+      dateObj.setMinutes(minute);
+      dateObj.setSeconds(0);
+      dateObj.setMilliseconds(0);
+
+      data.push({
+        title,
+        date: dateObj
+      });
+    });
+
+    return data;
+  });
+
+  console.log("FOUND EVENTS:", events.length);
+
+  // Генерация календаря
+  const cal = ical({ name: "TNOB Opera & Balet", timezone: "Europe/Chisinau" });
+
+  events.forEach(ev => {
+    cal.createEvent({
+      start: ev.date,
+      summary: ev.title,
+      location: "Teatrul Național de Operă și Balet, Chișinău",
+      description: "https://www.tnob.md"
     });
   });
 
-  return data;
-}));
+  fs.writeFileSync("calendar.ics", cal.toString());
+  console.log("Calendar generated ✅");
 
-console.log("FOUND EVENTS:", events.length);
-console.log(events);
+  await browser.close();
+}
 
-const monthsMap = {
-  ianuarie: 1,
-  februarie: 2,
-  martie: 3,
-  aprilie: 4,
-  mai: 5,
-  iunie: 6,
-  iulie: 7,
-  august: 8,
-  septembrie: 9,
-  octombrie: 10,
-  noiembrie: 11,
-  decembrie: 12
-};
-
-const cal = ical({
-  name: "TNOB Opera & Balet",
-  timezone: "Europe/Chisinau"
-});
-
-events.forEach(ev => {
-  const monthIndex = monthsMap[ev.monthName];
-  if (!monthIndex) return;
-
-  // Формируем строку в формате ICS с TZID
-  const start = `${year}${String(monthIndex).padStart(2,"0")}${String(ev.day).padStart(2,"0")}T${String(ev.hour).padStart(2,"0")}${String(ev.minute).padStart(2,"0")}00`;
-
-  cal.createEvent({
-    start,
-    timezone: "Europe/Chisinau",
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
-  });
-});
-
-fs.writeFileSync("calendar.ics", cal.toString());
-
-await browser.close();
-
-console.log("Calendar generated ✅");
+main().catch(err => console.error(err));
