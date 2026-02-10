@@ -1,103 +1,46 @@
 import fs from "fs";
 import ical from "ical-generator";
-import puppeteer from "puppeteer";
-import { DateTime } from "luxon";
 
-async function main() {
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+const year = 2026;
+const month = 2; // февраль
+
+const html = fs.readFileSync("calendar.html", "utf8");
+
+// -------- парсим события из HTML --------
+const eventRegex = /<div class="date">[\s\S]*?<p>(\d+)\s+Februarie<\/p>[\s\S]*?ora<\/span>\s*(\d{2}):(\d{2})[\s\S]*?<a href="([^"]+)">[\s\S]*?<p class="big">([^<]+)<\/p>/g;
+
+let match;
+const events = [];
+
+while ((match = eventRegex.exec(html)) !== null) {
+  events.push({
+    day: parseInt(match[1]),
+    hour: parseInt(match[2]),
+    minute: parseInt(match[3]),
+    link: match[4],
+    title: match[5]
   });
-
-  const page = await browser.newPage();
-
-  const now = DateTime.now().setZone("Europe/Chisinau");
-  const month = now.month;
-  const year = now.year;
-
-  const url = `https://www.tnob.md/ro/calendar/${month}-${year}`;
-  console.log("Open:", url);
-
-  await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-  await page.waitForSelector(".oneDay", { timeout: 20000 });
-
-  const events = await page.evaluate(() => {
-    const months = {
-      ianuarie: 1, februarie: 2, martie: 3, aprilie: 4,
-      mai: 5, iunie: 6, iulie: 7, august: 8,
-      septembrie: 9, octombrie: 10, noiembrie: 11, decembrie: 12
-    };
-
-    const data = [];
-
-    document.querySelectorAll(".oneDay").forEach(day => {
-      const dateEl = day.querySelector(".date p");
-      const timeEl = day.querySelector(".date span");
-      const titleEl = day.querySelector(".big");
-
-      if (!dateEl || !titleEl || !timeEl) return;
-
-      const title = titleEl.innerText.trim();
-
-      const dateText = dateEl.innerText.trim().toLowerCase(); // "13 februarie"
-      const timeText = timeEl.innerText.trim();               // "ora 18:30"
-
-      const d = dateText.match(/(\d+)\s+([a-zăâîșț]+)/);
-      const t = timeText.match(/(\d{1,2}):(\d{2})/);
-
-      if (!d || !t) return;
-
-      const dayNum = parseInt(d[1]);
-      const monthName = d[2];
-      const hour = parseInt(t[1]);
-      const minute = parseInt(t[2]);
-
-      const monthNum = months[monthName];
-      if (!monthNum) return;
-
-      data.push({
-        title,
-        day: dayNum,
-        month: monthNum,
-        hour,
-        minute
-      });
-    });
-
-    return data;
-  });
-
-  console.log("FOUND EVENTS:", events.length);
-
-  const cal = ical({
-    name: "TNOB Opera & Balet",
-    timezone: "Europe/Chisinau"
-  });
-
-  events.forEach(ev => {
-    const dt = DateTime.fromObject(
-      {
-        year,
-        month: ev.month,
-        day: ev.day,
-        hour: ev.hour,
-        minute: ev.minute
-      },
-      { zone: "Europe/Chisinau" }
-    );
-
-    cal.createEvent({
-      start: dt.toJSDate(),
-      summary: ev.title,
-      location: "Teatrul Național de Operă și Balet, Chișinău",
-      description: "https://www.tnob.md"
-    });
-  });
-
-  fs.writeFileSync("calendar.ics", cal.toString());
-  console.log("Calendar generated ✅");
-
-  await browser.close();
 }
 
-main().catch(err => console.error(err));
+console.log("FOUND EVENTS:", events.length);
+
+// -------- создаём календарь --------
+const cal = ical({
+  name: "TNOB Opera & Balet",
+  timezone: "Europe/Chisinau"
+});
+
+events.forEach(ev => {
+  const start = `${year}-${String(month).padStart(2,'0')}-${String(ev.day).padStart(2,'0')}T${String(ev.hour).padStart(2,'0')}:${String(ev.minute).padStart(2,'0')}:00`;
+
+  cal.createEvent({
+    start,
+    duration: { hours: 2 },
+    summary: ev.title,
+    url: ev.link,
+    timezone: "Europe/Chisinau"
+  });
+});
+
+fs.writeFileSync("calendar.ics", cal.toString());
+console.log("Calendar generated ✅");
