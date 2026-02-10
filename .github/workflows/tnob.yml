@@ -1,39 +1,27 @@
-name: Build TNOB Calendar
+name: Generate TNOB Calendar
 
-# Запускать каждый месяц 1-го числа в 10:00 UTC
 on:
   schedule:
-    - cron: "0 10 1 * *"
-  workflow_dispatch: # позволяет запускать вручную
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Клонируем репозиторий
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      # 2️⃣ Устанавливаем Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "18"
-
-      # 3️⃣ Устанавливаем зависимости
       - name: Install dependencies
         run: npm install
 
-      # 4️⃣ Запускаем наш скрипт
       - name: Generate calendar
         run: node generate.js
 
-      # 5️⃣ Коммитим обновлённый календарь
-      - name: Commit changes
+      - name: Commit calendar
         run: |
-          git config --local user.name "calendar-bot"
-          git config --local user.email "calendar-bot@example.com"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add calendar.ics
-          git diff --cached --quiet || git commit -m "Update calendar"
+          git commit -m "Update calendar" || echo "No changes"
           git push
