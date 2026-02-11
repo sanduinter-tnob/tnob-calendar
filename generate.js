@@ -1,54 +1,90 @@
-const fs = require('fs');
-const { google } = require('googleapis');
+import fs from "fs";
+import puppeteer from "puppeteer";
+import ical from "ical-generator";
 
-const events = JSON.parse(fs.readFileSync('events.json', 'utf8'));
-
-const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_CREDS),
-  scopes: ['https://www.googleapis.com/auth/calendar'],
+const cal = ical({
+  name: "TNOB Opera & Balet",
+  timezone: "Europe/Chisinau"
 });
 
-const calendar = google.calendar({ version: 'v3', auth });
+const browser = await puppeteer.launch({
+  headless: "new",
+  args: ["--no-sandbox", "--disable-setuid-sandbox"]
+});
 
-function createDateTime(dateStr, timeStr, durationMinutes) {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const [hour, minute] = timeStr.split(':').map(Number);
+const page = await browser.newPage();
 
-  const start = new Date(year, month - 1, day, hour, minute);
-  const end = new Date(start.getTime() + durationMinutes * 60000);
+const url = "https://www.tnob.md/ro/calendar/";
+console.log("Open:", url);
 
-  return { start, end };
-}
+await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0 });
 
-async function addEvent(eventData) {
-  const { start, end } = createDateTime(
-    eventData.date,
-    eventData.time,
-    eventData.totalDuration
-  );
+await page.waitForSelector(".oneDay");
 
-  const event = {
-    summary: eventData.title,
-    description:
-      `Language: ${eventData.language}\n` +
-      `Subtitles: ${eventData.subtitles}\n` +
-      `Duration: ${eventData.totalDuration} min`,
-    start: { dateTime: start.toISOString(), timeZone: 'Europe/Chisinau' },
-    end: { dateTime: end.toISOString(), timeZone: 'Europe/Chisinau' },
-  };
+const events = await page.evaluate(() => {
+  const data = [];
 
-  await calendar.events.insert({
-    calendarId: 'primary',
-    resource: event,
+  document.querySelectorAll(".oneDay").forEach(day => {
+    const dateEl = day.querySelector(".date p");
+    const timeEl = day.querySelector(".date span");
+    const titleEl = day.querySelector(".big");
+
+    if (!dateEl || !timeEl || !titleEl) return;
+
+    const dateText = dateEl.innerText.trim();      // 13 Februarie
+    const timeText = timeEl.innerText.trim();      // ora 18:30
+    const title = titleEl.innerText.trim();
+
+    data.push({ dateText, timeText, title });
   });
 
-  console.log(`Added: ${eventData.title}`);
+  return data;
+});
+
+console.log("FOUND EVENTS:", events.length);
+
+const months = {
+  ianuarie: 0,
+  februarie: 1,
+  martie: 2,
+  aprilie: 3,
+  mai: 4,
+  iunie: 5,
+  iulie: 6,
+  august: 7,
+  septembrie: 8,
+  octombrie: 9,
+  noiembrie: 10,
+  decembrie: 11
+};
+
+for (const ev of events) {
+  const [dayStr, monthStr] = ev.dateText.split(" ");
+  const day = parseInt(dayStr);
+  const month = months[monthStr.toLowerCase()];
+
+  const timeMatch = ev.timeText.match(/(\d+):(\d+)/);
+  if (!timeMatch) continue;
+
+  const hour = parseInt(timeMatch[1]);
+  const minute = parseInt(timeMatch[2]);
+
+  const now = new Date();
+  const year = now.getFullYear();
+
+  const start = new Date(year, month, day, hour, minute);
+
+  cal.createEvent({
+    start,
+    end: new Date(start.getTime() + 3 * 60 * 60 * 1000),
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description: "https://www.tnob.md"
+  });
 }
 
-async function run() {
-  for (const ev of events) {
-    await addEvent(ev);
-  }
-}
+fs.writeFileSync("calendar-tnob.ics", cal.toString());
 
-run();
+await browser.close();
+
+console.log("Calendar generated ✅");
