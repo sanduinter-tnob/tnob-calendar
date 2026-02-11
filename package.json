@@ -3,5 +3,6 @@
   "dependencies": {
     "ical-generator": "^6.0.0",
     "puppeteer": "^22.0.0"
+    "googleapis": "^133.0.0"
   }
 }
