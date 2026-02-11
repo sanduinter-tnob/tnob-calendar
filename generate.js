@@ -4,7 +4,7 @@ const { google } = require('googleapis');
 const events = JSON.parse(fs.readFileSync('events.json', 'utf8'));
 
 const auth = new google.auth.GoogleAuth({
-  keyFile: 'credentials.json',
+  credentials: JSON.parse(process.env.GOOGLE_CREDS),
   scopes: ['https://www.googleapis.com/auth/calendar'],
 });
 
