@@ -1,4 +1,4 @@
-name: Generate TNOB Calendar
+name: Update Calendar
 
 on:
   schedule:
@@ -10,18 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: npm install
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      - name: Generate calendar
-        run: node generate.js
+      - run: npm install
+      - run: node generate.js
 
-      - name: Commit calendar
+      - name: Commit and push calendar
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add calendar.ics
+          git add calendar-tnob.ics
           git commit -m "Update calendar" || echo "No changes"
           git push
