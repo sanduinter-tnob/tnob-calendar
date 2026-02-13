@@ -6,11 +6,6 @@ const cal = ical({
   timezone: "Europe/Chisinau"
 });
 
-function localDate(y, m, d, h, min) {
-  return `${y}${String(m).padStart(2,"0")}${String(d).padStart(2,"0")}T${String(h).padStart(2,"0")}${String(min).padStart(2,"0")}`;
-}
-
-// Пример данных, у тебя они приходят из парсера
 const events = [
   {
     title: "MACBETH",
@@ -19,7 +14,7 @@ const events = [
     day: 13,
     hour: 18,
     minute: 30,
-    durationMin: 225, // 3ч45м
+    durationMin: 225,
     language: "italiană",
     pauses: "2 x ~20 min",
     video: "https://synology/tnob/macbeth-13-02.mp4"
@@ -27,22 +22,15 @@ const events = [
 ];
 
 events.forEach(ev => {
-  const start = localDate(ev.year, ev.month, ev.day, ev.hour, ev.minute);
+  const start = new Date(ev.year, ev.month - 1, ev.day, ev.hour, ev.minute);
 
-  const endDate = new Date(ev.year, ev.month-1, ev.day, ev.hour, ev.minute);
-  endDate.setMinutes(endDate.getMinutes() + ev.durationMin);
-
-  const end = localDate(
-    endDate.getFullYear(),
-    endDate.getMonth()+1,
-    endDate.getDate(),
-    endDate.getHours(),
-    endDate.getMinutes()
-  );
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + ev.durationMin);
 
   cal.createEvent({
     start: start,
     end: end,
+    timezone: "Europe/Chisinau",   // ⭐ ВОТ ЭТО РЕШАЕТ ВСЁ
     summary: ev.title,
     location: "Teatrul Național de Operă și Balet, Chișinău",
     description:
