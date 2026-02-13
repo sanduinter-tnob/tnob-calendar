@@ -3,7 +3,7 @@ import ical from "ical-generator";
 
 const cal = ical({
   name: "TNOB Opera & Balet",
-  timezone: "Europe/Chisinau"
+  floating: true
 });
 
 const events = [
@@ -30,7 +30,7 @@ events.forEach(ev => {
   cal.createEvent({
     start: start,
     end: end,
-    timezone: "Europe/Chisinau",   // ⭐ ВОТ ЭТО РЕШАЕТ ВСЁ
+    floating: true,   // ⭐ ВОТ ЭТО РЕШАЕТ ВСЁ
     summary: ev.title,
     location: "Teatrul Național de Operă și Balet, Chișinău",
     description:
