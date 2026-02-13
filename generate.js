@@ -1,5 +1,4 @@
 import fs from "fs";
-import puppeteer from "puppeteer";
 import ical from "ical-generator";
 
 const cal = ical({
@@ -7,84 +6,51 @@ const cal = ical({
   timezone: "Europe/Chisinau"
 });
 
-const browser = await puppeteer.launch({
-  headless: "new",
-  args: ["--no-sandbox", "--disable-setuid-sandbox"]
-});
-
-const page = await browser.newPage();
-
-const url = "https://www.tnob.md/ro/calendar/";
-console.log("Open:", url);
-
-await page.goto(url, { waitUntil: "domcontentloaded", timeout: 0 });
-
-await page.waitForSelector(".oneDay");
-
-const events = await page.evaluate(() => {
-  const data = [];
-
-  document.querySelectorAll(".oneDay").forEach(day => {
-    const dateEl = day.querySelector(".date p");
-    const timeEl = day.querySelector(".date span");
-    const titleEl = day.querySelector(".big");
-
-    if (!dateEl || !timeEl || !titleEl) return;
-
-    const dateText = dateEl.innerText.trim();      // 13 Februarie
-    const timeText = timeEl.innerText.trim();      // ora 18:30
-    const title = titleEl.innerText.trim();
-
-    data.push({ dateText, timeText, title });
-  });
-
-  return data;
-});
-
-console.log("FOUND EVENTS:", events.length);
-
-const months = {
-  ianuarie: 0,
-  februarie: 1,
-  martie: 2,
-  aprilie: 3,
-  mai: 4,
-  iunie: 5,
-  iulie: 6,
-  august: 7,
-  septembrie: 8,
-  octombrie: 9,
-  noiembrie: 10,
-  decembrie: 11
-};
-
-for (const ev of events) {
-  const [dayStr, monthStr] = ev.dateText.split(" ");
-  const day = parseInt(dayStr);
-  const month = months[monthStr.toLowerCase()];
-
-  const timeMatch = ev.timeText.match(/(\d+):(\d+)/);
-  if (!timeMatch) continue;
-
-  const hour = parseInt(timeMatch[1]);
-  const minute = parseInt(timeMatch[2]);
-
-  const now = new Date();
-  const year = now.getFullYear();
-
-  const start = new Date(year, month, day, hour, minute);
-
-  cal.createEvent({
-    start,
-    end: new Date(start.getTime() + 3 * 60 * 60 * 1000),
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md"
-  });
+function localDate(y, m, d, h, min) {
+  return `${y}${String(m).padStart(2,"0")}${String(d).padStart(2,"0")}T${String(h).padStart(2,"0")}${String(min).padStart(2,"0")}`;
 }
 
+// Пример данных, у тебя они приходят из парсера
+const events = [
+  {
+    title: "MACBETH",
+    year: 2026,
+    month: 2,
+    day: 13,
+    hour: 18,
+    minute: 30,
+    durationMin: 225, // 3ч45м
+    language: "italiană",
+    pauses: "2 x ~20 min",
+    video: "https://synology/tnob/macbeth-13-02.mp4"
+  }
+];
+
+events.forEach(ev => {
+  const start = localDate(ev.year, ev.month, ev.day, ev.hour, ev.minute);
+
+  const endDate = new Date(ev.year, ev.month-1, ev.day, ev.hour, ev.minute);
+  endDate.setMinutes(endDate.getMinutes() + ev.durationMin);
+
+  const end = localDate(
+    endDate.getFullYear(),
+    endDate.getMonth()+1,
+    endDate.getDate(),
+    endDate.getHours(),
+    endDate.getMinutes()
+  );
+
+  cal.createEvent({
+    start: start,
+    end: end,
+    summary: ev.title,
+    location: "Teatrul Național de Operă și Balet, Chișinău",
+    description:
+`Durata: ${Math.floor(ev.durationMin/60)}h ${ev.durationMin%60}m (cu pauze)
+Limba: ${ev.language}
+Pauze: ${ev.pauses}
+Video: ${ev.video}`
+  });
+});
+
 fs.writeFileSync("calendar-tnob.ics", cal.toString());
-
-await browser.close();
-
-console.log("Calendar generated ✅");
