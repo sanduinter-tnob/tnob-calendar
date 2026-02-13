@@ -5,19 +5,15 @@ const cal = ical({
   name: "TNOB Opera & Balet"
 });
 
-// пример события после парсинга
 const events = [
   {
     title: "MACBETH",
-    day: 13,
-    month: 2,
     year: 2026,
+    month: 2,
+    day: 13,
     hour: 18,
     minute: 30,
-    durationMin: 225, // 3ч45м с паузами
-    language: "Italiană",
-    pauses: "2 pauze a câte ~20 min",
-    link: "https://www.tnob.md/ro/repertory/opera/macbeth"
+    durationMin: 225
   }
 ];
 
@@ -26,16 +22,11 @@ events.forEach(ev => {
   const end = new Date(start.getTime() + ev.durationMin * 60000);
 
   cal.createEvent({
-    start,
-    end,
+    start: start,
+    end: end,
     summary: ev.title,
     location: "Teatrul Național de Operă și Balet, Chișinău",
-    description:
-`${ev.link}
-
-Durata: ${Math.floor(ev.durationMin/60)}h ${ev.durationMin%60}m
-Pauze: ${ev.pauses}
-Limba operei: ${ev.language}`,
+    description: "https://www.tnob.md",
     floating: true
   });
 });
