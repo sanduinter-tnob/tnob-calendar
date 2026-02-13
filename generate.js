@@ -22,13 +22,14 @@ events.forEach(ev => {
   const end = new Date(start.getTime() + ev.durationMin * 60000);
 
   cal.createEvent({
-    start: start,
-    end: end,
-    summary: ev.title,
-    location: "Teatrul Național de Operă și Balet, Chișinău",
-    description: "https://www.tnob.md",
-    floating: true
-  });
+  start: date,
+  end: endDate,
+  summary: title,
+  location: "Teatrul Național de Operă și Balet, Chișinău",
+  description: description,
+  timezone: "Europe/Chisinau"
+});
+
 });
 
 fs.writeFileSync("calendar-tnob.ics", cal.toString());
