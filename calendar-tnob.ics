@@ -6,14 +6,14 @@ X-WR-CALNAME:TNOB Opera & Balet
 TIMEZONE-ID:Europe/Chisinau
 X-WR-TIMEZONE:Europe/Chisinau
 BEGIN:VEVENT
-UID:d8742f53-0027-42ab-9b84-59c0bb087471
+UID:5edeb21a-0afa-47b2-aaba-6bc3e37da6ad
 SEQUENCE:0
-DTSTAMP:20260615T164633
+DTSTAMP:20260615T204105
 DTSTART;TZID=Europe/Chisinau:20260213T163000
 DTEND;TZID=Europe/Chisinau:20260213T201500
 SUMMARY:MACBETH
 LOCATION:Teatrul Național de Operă și Balet\, Chișinău
-DESCRIPTION:Durata: \n\nBilete: https://www.tnob.md/ro/repertory/opera/mac
- beth
+DESCRIPTION:Durata: 3 ore\n\nBilete: https://www.tnob.md/ro/repertory/oper
+ a/macbeth
 END:VEVENT
 END:VCALENDAR
